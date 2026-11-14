@@ -618,7 +618,6 @@ function openExportDialog(ctx, settings) {
   const existingDialog = document.getElementById(DIALOG_ID);
   if (dialogOpen && existingDialog) return Promise.resolve(null);
   if (existingDialog) existingDialog.remove();
-  dialogOpen = false;
   dialogOpen = true;
 
   return new Promise(resolve => {
