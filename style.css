@@ -107,6 +107,10 @@
   align-items: center;
   justify-content: center;
   padding: 16px;
+  height: 100vh;
+  height: 100dvh;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .bbi-export-dialog__backdrop {
@@ -118,6 +122,8 @@
 .bbi-export-dialog__card {
   position: relative;
   width: min(680px, 94vw);
+  max-width: 100%;
+  min-width: 0;
   max-height: 86vh;
   box-sizing: border-box;
   display: flex;
@@ -177,6 +183,82 @@
   margin: -2px 0 6px;
   font-size: 11px;
   opacity: 0.66;
+}
+
+.bbi-export-dialog__format {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.bbi-export-dialog__choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.16));
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.bbi-export-dialog__choice:hover {
+  background: rgba(127, 127, 127, 0.12);
+}
+
+.bbi-export-dialog__choice span {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.bbi-export-dialog__choice b {
+  font-size: 13px;
+}
+
+.bbi-export-dialog__choice em {
+  font-style: normal;
+  font-size: 11px;
+  opacity: 0.68;
+}
+
+.bbi-export-dialog__range {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(127, 127, 127, 0.1);
+}
+
+.bbi-export-dialog__range label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.bbi-export-dialog__range input[type="number"] {
+  width: 68px;
+  min-height: 30px;
+  box-sizing: border-box;
+  padding: 3px 6px;
+  border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.16));
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.16);
+  color: inherit;
+  font-size: 14px;
+}
+
+.bbi-export-dialog__range .menu_button {
+  margin-left: auto;
+  min-height: 30px;
+}
+
+.bbi-export-dialog__range-error {
+  margin: 6px 0 0;
+  color: #ff8a8a;
+  font-size: 12px;
 }
 
 .bbi-export-dialog__body-list,
@@ -301,6 +383,196 @@
   gap: 8px;
 }
 
-.bbi-export-dialog.is-body-off .bbi-export-dialog__fields {
+.bbi-export-dialog.is-body-off .bbi-export-dialog__body-list,
+.bbi-export-dialog.is-body-off .bbi-export-dialog__tags,
+.bbi-export-dialog.is-body-off .bbi-export-dialog__bulk {
   opacity: 0.55;
+}
+
+/* ------------------------------------------------------------------ *
+ * 手机端：卡片改为整屏，避开浏览器/酒馆顶栏与安全区，底部按钮常驻
+ * ------------------------------------------------------------------ */
+@media (max-width: 640px), (max-height: 560px) {
+  .bbi-export-dialog {
+    align-items: stretch;
+    justify-content: stretch;
+    padding: max(6px, env(safe-area-inset-top)) 8px max(6px, env(safe-area-inset-bottom));
+  }
+
+  .bbi-export-dialog__card {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    height: 100%;
+    max-height: none;
+    padding: 12px;
+    gap: 10px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.6;
+    overflow: hidden;
+  }
+
+  .bbi-export-dialog__head,
+  .bbi-export-dialog__head p,
+  .bbi-export-dialog__switch span,
+  .bbi-export-dialog__section,
+  .bbi-export-dialog__section-note,
+  .bbi-export-dialog__body-option span,
+  .bbi-export-dialog__tag-main,
+  .bbi-export-dialog__foot,
+  .bbi-export-dialog__foot > span {
+    min-width: 0;
+  }
+
+  .bbi-export-dialog__head p,
+  .bbi-export-dialog__section-note,
+  .bbi-export-dialog__tag-title,
+  .bbi-export-dialog__sample,
+  .bbi-export-dialog__choice em {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .bbi-export-dialog__body-option code,
+  .bbi-export-dialog__tag code,
+  .bbi-export-dialog__head code {
+    overflow-wrap: anywhere;
+    word-break: break-all;
+  }
+
+  .bbi-export-dialog__head {
+    flex: 0 0 auto;
+  }
+
+  .bbi-export-dialog__head b {
+    font-size: 16px;
+    line-height: 1.35;
+  }
+
+  .bbi-export-dialog__head p {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .bbi-export-dialog__switch {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 9px 12px;
+  }
+
+  .bbi-export-dialog__switch input {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+  }
+
+  .bbi-export-dialog__fields {
+    padding-right: 0;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  .bbi-export-dialog__section {
+    margin-top: 14px;
+  }
+
+  .bbi-export-dialog__section h4 {
+    font-size: 14px;
+  }
+
+  .bbi-export-dialog__section-note {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .bbi-export-dialog__format {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .bbi-export-dialog__choice {
+    min-height: 48px;
+    padding: 10px;
+  }
+
+  .bbi-export-dialog__choice input {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+    margin-top: 2px;
+  }
+
+  .bbi-export-dialog__body-option,
+  .bbi-export-dialog__tag {
+    min-height: 44px;
+    padding: 9px 10px;
+  }
+
+  .bbi-export-dialog__body-option input,
+  .bbi-export-dialog__tag input {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+    margin-top: 2px;
+  }
+
+  .bbi-export-dialog__range {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .bbi-export-dialog__range input[type="number"] {
+    width: 72px;
+    min-height: 38px;
+    font-size: 16px;
+  }
+
+  .bbi-export-dialog__range .menu_button {
+    min-height: 38px;
+    margin-left: 0;
+  }
+
+  .bbi-export-dialog__foot {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    flex: 0 0 auto;
+    padding-top: 10px;
+    padding-bottom: max(2px, env(safe-area-inset-bottom));
+    background: var(--SmartThemeBlurTintColor, #1f1f22);
+  }
+
+  .bbi-export-dialog__buttons {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .bbi-export-dialog__buttons .menu_button {
+    min-width: 0;
+    min-height: 46px;
+    padding: 8px 12px;
+    font-size: 15px;
+    white-space: normal;
+  }
+}
+
+/* 横屏手机/小窗口：进一步压缩头部，把高度留给标签清单 */
+@media (max-width: 900px) and (max-height: 480px) {
+  .bbi-export-dialog__head p,
+  .bbi-export-dialog__section-note {
+    display: none;
+  }
+
+  .bbi-export-dialog__card {
+    gap: 6px;
+    padding: 8px 10px;
+  }
+
+  .bbi-export-dialog__switch {
+    min-height: 38px;
+    padding: 5px 10px;
+  }
 }

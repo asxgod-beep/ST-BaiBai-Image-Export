@@ -22,6 +22,7 @@
  */
 
 import { buildDocx, sanitizeMessageText } from './docx.js';
+import { buildEpub } from './epub.js';
 
 const SETTINGS_KEY = 'baibai_image_export';
 const PANEL_ID = 'bbi-export-panel';
@@ -29,6 +30,7 @@ const MENU_ITEM_ID = 'bbi-export-menu-item';
 const RUN_BUTTON_ID = 'bbi-export-run';
 const STATUS_ID = 'bbi-export-status';
 const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const EPUB_MIME = 'application/epub+zip';
 
 /** 与柏宝绘默认设置保持同一套「清晰阅读」取向：提示词默认不导出，图片默认压缩。 */
 const DEFAULT_SETTINGS = {
@@ -40,6 +42,7 @@ const DEFAULT_SETTINGS = {
   bodyOnly: true,
   bodyTag: '',
   excludeTags: '',
+  format: 'docx',
 };
 
 /** 压缩后的最长边（px）。15cm 宽约等于 270DPI，够印刷级阅读。 */
@@ -661,13 +664,39 @@ function openExportDialog(ctx, settings) {
 
         <fieldset class="bbi-export-dialog__fields">
           <section class="bbi-export-dialog__section">
-            <h4>1. 正文从哪个标签里取</h4>
+            <h4>1. 导出格式</h4>
+            <div class="bbi-export-dialog__format">
+              <label class="bbi-export-dialog__choice">
+                <input type="radio" name="bbi-format" value="docx" ${settings.format === 'epub' ? '' : 'checked'}>
+                <span><b>Word</b><em>.docx · 图文混排，适合打印、存档、发给人看</em></span>
+              </label>
+              <label class="bbi-export-dialog__choice">
+                <input type="radio" name="bbi-format" value="epub" ${settings.format === 'epub' ? 'checked' : ''}>
+                <span><b>EPUB</b><em>.epub · 手机阅读器/电纸书，流式翻页</em></span>
+              </label>
+            </div>
+          </section>
+
+          <section class="bbi-export-dialog__section">
+            <h4>2. 导出楼层范围</h4>
+            <div class="bbi-export-dialog__range">
+              <label>从 <input type="number" id="bbi-floor-start" min="1" max="${Math.max(1, inventory.floors)}" value="1" inputmode="numeric"> 层</label>
+              <span>到</span>
+              <label><input type="number" id="bbi-floor-end" min="1" max="${Math.max(1, inventory.floors)}" value="${Math.max(1, inventory.floors)}" inputmode="numeric"> 层</label>
+              <button type="button" class="menu_button" data-action="range-all">全部</button>
+            </div>
+            <p class="bbi-export-dialog__section-note">当前共 <b>${inventory.floors}</b> 个 AI 楼层（不含你的发言）。只导某一层时，起止填同一个数字。</p>
+            <p class="bbi-export-dialog__range-error" hidden></p>
+          </section>
+
+          <section class="bbi-export-dialog__section">
+            <h4>3. 正文从哪个标签里取</h4>
             <p class="bbi-export-dialog__section-note">一般保持「自动识别」；只有角色卡把正文固定包在某个标签里时，才需要选下面的标签。</p>
             <div class="bbi-export-dialog__body-list">${bodyOptions}</div>
           </section>
 
           <section class="bbi-export-dialog__section">
-            <h4>2. 整块不导出（勾选的标签会被删除）</h4>
+            <h4>4. 整块不导出（勾选的标签会被删除）</h4>
             <div class="bbi-export-dialog__bulk">
               <button type="button" class="menu_button" data-action="check-all">全选</button>
               <button type="button" class="menu_button" data-action="uncheck-all">全不选</button>
@@ -687,23 +716,62 @@ function openExportDialog(ctx, settings) {
 
     document.body.appendChild(overlay);
 
-    const fields = overlay.querySelector('.bbi-export-dialog__fields');
     const bodyOnly = overlay.querySelector('#bbi-dialog-body-only');
-    const syncBodyOnly = () => {
-      fields.disabled = !bodyOnly.checked;
-      overlay.classList.toggle('is-body-off', !bodyOnly.checked);
+    const floorStart = overlay.querySelector('#bbi-floor-start');
+    const floorEnd = overlay.querySelector('#bbi-floor-end');
+    const rangeError = overlay.querySelector('.bbi-export-dialog__range-error');
+    const totalFloors = Math.max(1, inventory.floors);
+
+    const readRange = () => {
+      const start = Number.parseInt(floorStart.value, 10);
+      const end = Number.parseInt(floorEnd.value, 10);
+      const fail = message => {
+        rangeError.textContent = message;
+        rangeError.hidden = false;
+        return null;
+      };
+      if (!Number.isInteger(start) || !Number.isInteger(end)) {
+        return fail('请填写整数楼层号。');
+      }
+      if (start < 1 || end < 1 || start > totalFloors || end > totalFloors) {
+        return fail(`楼层号必须在 1–${totalFloors} 之间。`);
+      }
+      if (start > end) {
+        return fail('起始层不能大于结束层；只导一层时请把起止填成同一个数字。');
+      }
+      rangeError.hidden = true;
+      rangeError.textContent = '';
+      return { floorStart: start, floorEnd: end };
     };
-    syncBodyOnly();
-    bodyOnly.addEventListener('change', syncBodyOnly);
+
+    overlay.querySelector('[data-action="range-all"]')?.addEventListener('click', () => {
+      floorStart.value = '1';
+      floorEnd.value = String(totalFloors);
+      readRange();
+    });
+    for (const input of [floorStart, floorEnd]) {
+      input.addEventListener('input', () => {
+        if (!rangeError.hidden) readRange();
+      });
+    }
 
     const syncBodyTag = () => {
       const chosen = overlay.querySelector('input[name="bbi-body-tag"]:checked')?.value || '';
       for (const box of overlay.querySelectorAll('input[data-exclude]')) {
         const isBody = box.dataset.exclude === chosen;
-        box.disabled = isBody;
+        box.disabled = !bodyOnly.checked || isBody;
         if (isBody) box.checked = false;
       }
     };
+    const syncBodyOnly = () => {
+      overlay.classList.toggle('is-body-off', !bodyOnly.checked);
+      for (const input of overlay.querySelectorAll('input[name="bbi-body-tag"]')) {
+        input.disabled = !bodyOnly.checked;
+      }
+      syncBodyTag();
+    };
+    syncBodyOnly();
+    bodyOnly.addEventListener('change', syncBodyOnly);
     overlay.addEventListener('change', event => {
       if (event.target.name === 'bbi-body-tag') syncBodyTag();
     });
@@ -733,8 +801,14 @@ function openExportDialog(ctx, settings) {
     overlay.querySelector('[data-action="backdrop"]')?.addEventListener('click', () => finish(null));
     overlay.querySelector('[data-action="cancel"]')?.addEventListener('click', () => finish(null));
     overlay.querySelector('[data-action="confirm"]')?.addEventListener('click', () => {
+      const format = overlay.querySelector('input[name="bbi-format"]:checked')?.value === 'epub' ? 'epub' : 'docx';
+      const range = readRange();
+      if (!range) {
+        rangeError.scrollIntoView({ block: 'nearest' });
+        return;
+      }
       if (!bodyOnly.checked) {
-        finish({ bodyOnly: false });
+        finish({ bodyOnly: false, format, ...range });
         return;
       }
       const chosenBody = overlay.querySelector('input[name="bbi-body-tag"]:checked')?.value || '';
@@ -748,6 +822,8 @@ function openExportDialog(ctx, settings) {
         bodyTag: chosenBody,
         excludeTags: excluded.join(', '),
         keepTags: kept.join(', '),
+        format,
+        ...range,
       });
     });
   });
@@ -942,8 +1018,8 @@ function safeFileName(name) {
   );
 }
 
-function downloadDocx(bytes, filename) {
-  const blob = new Blob([bytes], { type: DOCX_MIME });
+function downloadFile(bytes, filename, mime) {
+  const blob = new Blob([bytes], { type: mime });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
@@ -954,6 +1030,24 @@ function downloadDocx(bytes, filename) {
   link.remove();
   // 立刻 revoke 会让部分浏览器的下载中断，留一分钟再回收
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+/**
+ * 按 1-based 的 AI 楼层序号截取；起止越界会被夹到合法范围，起止颠倒则交换。
+ * 这里的“层”是当前聊天里 AI 回复的顺序，不是 ST 的 messageId。
+ */
+function selectFloorRange(floors, start, end) {
+  const list = Array.isArray(floors) ? floors : [];
+  const total = list.length;
+  if (!total) return [];
+  let from = Number.parseInt(start, 10);
+  let to = Number.parseInt(end, 10);
+  if (!Number.isInteger(from)) from = 1;
+  if (!Number.isInteger(to)) to = total;
+  from = Math.min(Math.max(from, 1), total);
+  to = Math.min(Math.max(to, 1), total);
+  if (from > to) [from, to] = [to, from];
+  return list.slice(from - 1, to);
 }
 
 function toDocBlocks(floors, assets, options) {
@@ -1007,9 +1101,12 @@ async function exportAll() {
   setBusyUi(true, '正在收集楼层…');
 
   try {
-    const floors = collectFloors(ctx, options).filter(floor => !options.onlyWithImages || floor.imageCount > 0);
+    const allFloors = collectFloors(ctx, options);
+    const floors = selectFloorRange(allFloors, options.floorStart, options.floorEnd)
+      .filter(floor => !options.onlyWithImages || floor.imageCount > 0);
     if (!floors.length) {
-      toast('warning', options.onlyWithImages ? '没有找到带配图的 AI 楼层。' : '没有找到可导出的 AI 楼层。');
+      const rangeHint = allFloors.length ? `第 ${options.floorStart || 1}–${options.floorEnd || allFloors.length} 层里` : '';
+      toast('warning', options.onlyWithImages ? `${rangeHint}没有找到带配图的 AI 楼层。` : `${rangeHint}没有找到可导出的 AI 楼层。`);
       return;
     }
 
@@ -1038,7 +1135,8 @@ async function exportAll() {
       });
     }
 
-    setBusyUi(true, '正在生成 Word…');
+    const format = options.format === 'epub' ? 'epub' : 'docx';
+    setBusyUi(true, format === 'epub' ? '正在生成 EPUB…' : '正在生成 Word…');
     const { blocks, stats } = toDocBlocks(floors, assets, options);
 
     const now = new Date();
@@ -1046,14 +1144,18 @@ async function exportAll() {
     const title = `${characterName} · 图文导出`;
     const subtitle = `${stats.floors} 个 AI 楼层 · ${stats.images} 张配图 · ${formatDateTime(now)}`;
 
-    const bytes = buildDocx({ title, subtitle, blocks, createdAt: now });
-    const filename = `柏宝绘_${safeFileName(characterName)}_图文_${formatStamp(now)}.docx`;
-    downloadDocx(bytes, filename);
+    const bytes = format === 'epub'
+      ? buildEpub({ title, subtitle, blocks, createdAt: now })
+      : buildDocx({ title, subtitle, blocks, createdAt: now });
+    const extension = format === 'epub' ? '.epub' : '.docx';
+    const filename = `柏宝绘_${safeFileName(characterName)}_图文_${formatStamp(now)}${extension}`;
+    downloadFile(bytes, filename, format === 'epub' ? EPUB_MIME : DOCX_MIME);
 
+    const formatLabel = format === 'epub' ? 'EPUB' : 'Word';
     if (stats.failed) {
-      toast('warning', `已导出 ${stats.floors} 个 AI 楼层、${stats.images} 张配图；${stats.failed} 张图片读取失败已跳过。`);
+      toast('warning', `已导出 ${stats.floors} 个 AI 楼层、${stats.images} 张配图（${formatLabel}）；${stats.failed} 张图片读取失败已跳过。`);
     } else {
-      toast('success', `已导出 ${stats.floors} 个 AI 楼层、${stats.images} 张配图。`);
+      toast('success', `已导出 ${stats.floors} 个 AI 楼层、${stats.images} 张配图（${formatLabel}）。`);
     }
     if (typeof window.toastr?.info === 'function') {
       window.toastr.info(`文件：${filename}`, '柏宝绘 · 图文导出', { timeOut: 6000 });
@@ -1075,7 +1177,7 @@ function setBusyUi(running, text) {
   const button = document.getElementById(RUN_BUTTON_ID);
   if (button) {
     button.disabled = running;
-    button.textContent = running ? text || '导出中…' : '导出为 Word';
+    button.textContent = running ? text || '导出中…' : '导出 Word / EPUB';
   }
   const status = document.getElementById(STATUS_ID);
   if (status) status.textContent = text || '';
@@ -1117,7 +1219,7 @@ function injectSettingsPanel() {
       <label><input type="checkbox" data-setting="compressImages"> 压缩图片以减小文档体积（推荐）</label>
     </div>
     <div class="bbi-export-panel__actions">
-      <button id="${RUN_BUTTON_ID}" class="menu_button" type="button">导出为 Word</button>
+      <button id="${RUN_BUTTON_ID}" class="menu_button" type="button">导出 Word / EPUB</button>
       <span id="${STATUS_ID}" class="bbi-export-status"></span>
     </div>
   `;
@@ -1155,7 +1257,7 @@ function injectMenuButton() {
   link.id = MENU_ITEM_ID;
   link.className = 'list-group-item';
   link.href = '#';
-  link.title = '把当前聊天的全部 AI 楼层（正文 + 柏宝绘配图）导出为 Word';
+  link.title = '把当前聊天的 AI 楼层（正文 + 柏宝绘配图）导出为 Word 或 EPUB';
   link.innerHTML = '<i class="fa-solid fa-file-word"></i><span>导出图文 Word</span>';
   link.addEventListener('click', event => {
     event.preventDefault();
@@ -1212,7 +1314,7 @@ function registerSlashCommand() {
     SlashCommandParser.addCommandObject(
       SlashCommand.fromProps({
         name: 'bbi-export-docx',
-        helpString: '把当前聊天的全部 AI 楼层（正文 + 柏宝绘配图）导出为 Word 文档。',
+        helpString: '把当前聊天的 AI 楼层（正文 + 柏宝绘配图）导出为 Word 或 EPUB 文档。',
         callback: async () => {
           await exportAll();
           return '';
@@ -1291,5 +1393,6 @@ export {
   promptText,
   readSettings,
   scanTagInventory,
+  selectFloorRange,
   suggestExclude,
 };
