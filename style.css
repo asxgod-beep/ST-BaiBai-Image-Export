@@ -1,0 +1,306 @@
+/**
+ * 柏宝绘 · 图文导出 —— 扩展设置面板样式
+ * 只作用于自己的面板（#bbi-export-panel），不碰 ST 的其它组件。
+ */
+
+.bbi-export-panel {
+  margin: 8px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.16));
+  border-radius: 10px;
+  background: var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.12));
+  color: var(--SmartThemeBodyColor, inherit);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.bbi-export-panel__head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
+.bbi-export-panel__head b {
+  font-size: 14px;
+}
+
+.bbi-export-panel__head span {
+  opacity: 0.72;
+  font-size: 12px;
+}
+
+.bbi-export-panel__options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bbi-export-panel__options label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.bbi-export-panel__options input {
+  margin: 0;
+}
+
+/* 正文标签 / 排除标签：文字输入行单独排版，避免和勾选项挤成一团 */
+.bbi-export-panel__field {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  cursor: default;
+}
+
+.bbi-export-panel__field > span {
+  font-size: 12px;
+  opacity: 0.78;
+}
+
+.bbi-export-panel__field input[type="text"] {
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.16));
+  border-radius: 6px;
+  background: var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.12));
+  color: inherit;
+  font-size: 12px;
+}
+
+.bbi-export-panel__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.bbi-export-panel__actions .menu_button {
+  white-space: nowrap;
+}
+
+.bbi-export-panel__actions .menu_button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.bbi-export-status {
+  font-size: 12px;
+  opacity: 0.72;
+  word-break: break-all;
+}
+
+/* ------------------------------------------------------------------ *
+ * 导出前确认弹窗：标签清单 / 正文来源 / 剔除名单
+ * 全部类名带 bbi-export-dialog 前缀，不影响 ST 其它弹窗。
+ * ------------------------------------------------------------------ */
+
+.bbi-export-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.bbi-export-dialog__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.58);
+}
+
+.bbi-export-dialog__card {
+  position: relative;
+  width: min(680px, 94vw);
+  max-height: 86vh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  overflow: hidden;
+  border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.2));
+  border-radius: 12px;
+  background: var(--SmartThemeBlurTintColor, #1f1f22);
+  color: var(--SmartThemeBodyColor, inherit);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.bbi-export-dialog__head b {
+  font-size: 15px;
+}
+
+.bbi-export-dialog__head p {
+  margin: 4px 0 0;
+  opacity: 0.78;
+  font-size: 12px;
+}
+
+.bbi-export-dialog__switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(127, 127, 127, 0.12);
+  cursor: pointer;
+  user-select: none;
+}
+
+.bbi-export-dialog__fields {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0 4px 0 0;
+  overflow: auto;
+  border: 0;
+}
+
+.bbi-export-dialog__section {
+  margin-top: 12px;
+}
+
+.bbi-export-dialog__section h4 {
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+
+.bbi-export-dialog__section-note {
+  margin: -2px 0 6px;
+  font-size: 11px;
+  opacity: 0.66;
+}
+
+.bbi-export-dialog__body-list,
+.bbi-export-dialog__tags {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-right: 2px;
+}
+
+.bbi-export-dialog__body-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.bbi-export-dialog__body-option:hover,
+.bbi-export-dialog__tag:hover {
+  background: rgba(127, 127, 127, 0.14);
+}
+
+.bbi-export-dialog__body-option span {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.bbi-export-dialog__body-option em {
+  font-style: normal;
+  font-size: 11px;
+  opacity: 0.68;
+}
+
+.bbi-export-dialog__body-option code,
+.bbi-export-dialog__tag code {
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.bbi-export-dialog__tag {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.bbi-export-dialog__tag-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.bbi-export-dialog__tag-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bbi-export-dialog__tag-title em {
+  font-style: normal;
+  font-size: 11px;
+  opacity: 0.66;
+}
+
+.bbi-export-dialog__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.bbi-export-dialog__badges span {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(127, 127, 127, 0.18);
+  font-size: 11px;
+  opacity: 0.9;
+}
+
+.bbi-export-dialog__sample {
+  opacity: 0.6;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bbi-export-dialog__bulk {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.bbi-export-dialog__empty {
+  margin: 4px 0;
+  opacity: 0.7;
+  font-size: 12px;
+}
+
+.bbi-export-dialog__foot {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.12));
+  padding-top: 10px;
+}
+
+.bbi-export-dialog__foot > span {
+  font-size: 11px;
+  opacity: 0.66;
+}
+
+.bbi-export-dialog__buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.bbi-export-dialog.is-body-off .bbi-export-dialog__fields {
+  opacity: 0.55;
+}
