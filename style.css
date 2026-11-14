@@ -435,10 +435,15 @@
   }
 
   .bbi-export-dialog__body-option code,
-  .bbi-export-dialog__tag code,
-  .bbi-export-dialog__head code {
+  .bbi-export-dialog__tag code {
     overflow-wrap: anywhere;
     word-break: break-all;
+  }
+
+  .bbi-export-dialog__head code {
+    white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: normal;
   }
 
   .bbi-export-dialog__head {
