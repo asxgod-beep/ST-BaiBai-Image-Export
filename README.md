@@ -210,7 +210,7 @@ python tests/validate_docx.py tests/sample.docx
 python tests/validate_epub.py tests/sample.epub
 ```
 
-当前单测 **36 项**全部通过，覆盖：思维链/吐槽/状态块剔除、孤儿闭合标签整段切、结尾孤儿开标签、`<details><summary>` 折叠块、`tool_call`/`tool_response`/`advice`、提示词复述整行删除、尾部提示词带大纲整段切、无时间戳楼层、`<正文>` 容器、自定义正文标签、思维链里的示例 tag 不参与配图、标签清单扫描（含容器内部标签）与默认剔除建议、勾掉正文容器后整块不导出、1-based 楼层范围/单层/越界夹取、EPUB 的 mimetype 顺序与 OPF/spine/图片、手机断点与安全区。
+当前单测 **37 项**全部通过，覆盖：思维链/吐槽/状态块剔除、孤儿闭合标签整段切、结尾孤儿开标签、`<details><summary>` 折叠块、`tool_call`/`tool_response`/`advice`、提示词复述整行删除、尾部提示词带大纲整段切、无时间戳楼层、`<正文>` 容器、自定义正文标签、思维链里的示例 tag 不参与配图、标签清单扫描（含容器内部标签）与默认剔除建议、勾掉正文容器后整块不导出、1-based 楼层范围/单层/越界夹取、EPUB 的 mimetype 顺序与 OPF/spine/图片/每 8 层分章、手机断点与安全区。
 
 `tests/dialog-preview.html` 是手机弹窗的静态预览；`tests/dialog-mobile.png` 是 390×844 的渲染结果。
 

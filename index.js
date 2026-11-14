@@ -1200,7 +1200,7 @@ function injectSettingsPanel() {
   panel.innerHTML = `
     <div class="bbi-export-panel__head">
       <b>柏宝绘 · 图文导出</b>
-      <span>把当前聊天里所有 AI 楼层的正文与配图导出成一份 Word</span>
+      <span>把当前聊天里选定楼层的正文与配图导出成 Word 或 EPUB</span>
     </div>
     <div class="bbi-export-panel__options">
       <label><input type="checkbox" data-setting="bodyOnly"> 只导出正文（自动去掉思维链、吐槽、状态块）</label>
@@ -1258,7 +1258,7 @@ function injectMenuButton() {
   link.className = 'list-group-item';
   link.href = '#';
   link.title = '把当前聊天的 AI 楼层（正文 + 柏宝绘配图）导出为 Word 或 EPUB';
-  link.innerHTML = '<i class="fa-solid fa-file-word"></i><span>导出图文 Word</span>';
+  link.innerHTML = '<i class="fa-solid fa-file-word"></i><span>导出图文</span>';
   link.addEventListener('click', event => {
     event.preventDefault();
     menu.style.display = 'none';
