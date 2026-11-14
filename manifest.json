@@ -3,10 +3,10 @@
   "loading_order": 101,
   "requires": [],
   "optional": [],
-  "js": "index.js?ver=1.4.0",
-  "css": "style.css?ver=1.4.0",
+  "js": "index.js?ver=1.4.1",
+  "css": "style.css?ver=1.4.1",
   "author": "柏柏",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "auto_update": false,
   "minimum_client_version": "1.12.13"
 }

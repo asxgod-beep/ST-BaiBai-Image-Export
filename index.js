@@ -866,6 +866,7 @@ function collectFloors(ctx, options = {}) {
     if (!blocks.length) continue;
 
     floors.push({
+      ordinal: floors.length + 1,
       messageId,
       name: String(message.name || '').trim(),
       date: String(message.send_date || '').trim(),
@@ -1055,9 +1056,13 @@ function toDocBlocks(floors, assets, options) {
   const stats = { floors: floors.length, images: 0, failed: 0 };
 
   for (const floor of floors) {
-    if (options.showFloorName) {
-      blocks.push({ type: 'floor', name: floor.name, meta: options.showTime ? floor.date : '' });
-    }
+    blocks.push({
+      type: 'floor',
+      name: options.showFloorName ? floor.name : '',
+      meta: options.showTime ? floor.date : '',
+      index: floor.ordinal,
+      hidden: !options.showFloorName,
+    });
     for (const item of floor.blocks) {
       if (item.type === 'text') {
         blocks.push({ type: 'text', text: item.text });

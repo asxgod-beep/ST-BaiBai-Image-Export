@@ -6,7 +6,7 @@ SillyTavern 第三方扩展：把**当前聊天里选定的 AI 楼层**正文与
 
 一句话：正文里怎么排，Word 里就怎么排——文字段落、列表、引用、标题，配图按 `<bbi_image>` 标签在正文中的位置插入，图下可选出图提示词；EPUB 则按同一套正文顺序生成可翻页的电子书。
 
-> v1.4.0：新增手机端整屏弹窗（安全区、`100dvh`、底部按钮常驻、44px 以上触控目标）、自定义楼层范围（如 1–10、1–5，或起止相同的单层）、Word / EPUB 二选一。v1.3.0 起，针对真实聊天里「思维链只有闭合标签、没有开标签」的写法做了专项排漏；v1.2.0 起，每次点导出会先弹出「标签确认」窗口；v1.1.0 默认只导正文；v1.0.0 会把整楼原文（含思维链）一起导出。旧版请直接替换为新版。
+> v1.4.1：EPUB 改为**每个 AI 楼层一章**，章节名就是楼层号（第一层＝第一章、第二层＝第二章……）；v1.4.0 新增手机端整屏弹窗（安全区、`100dvh`、底部按钮常驻、44px 以上触控目标）、自定义楼层范围（如 1–10、1–5，或起止相同的单层）、Word / EPUB 二选一。v1.3.0 起，针对真实聊天里「思维链只有闭合标签、没有开标签」的写法做了专项排漏；v1.2.0 起，每次点导出会先弹出「标签确认」窗口；v1.1.0 默认只导正文；v1.0.0 会把整楼原文（含思维链）一起导出。旧版请直接替换为新版。
 
 ---
 
@@ -60,7 +60,7 @@ SillyTavern 第三方扩展：把**当前聊天里选定的 AI 楼层**正文与
    - **扩展设置面板** → `柏宝绘 · 图文导出` 卡片 → `导出 Word / EPUB`
 5. 高级用户还可以用斜杠命令：`/bbi-export-docx`
 
-> 更新插件时，记得同时替换 `index.js`、`docx.js`、`epub.js` 和 `style.css`——`index.js` 会 `import './docx.js'` 和 `import './epub.js'`，少一个文件会加载失败。
+> 更新插件时，记得同时替换 `manifest.json`、`index.js`、`docx.js`、`epub.js` 和 `style.css`——`index.js` 会 `import './docx.js'` 和 `import './epub.js'`，少一个文件会加载失败。
 
 ---
 
@@ -170,7 +170,7 @@ SillyTavern 第三方扩展：把**当前聊天里选定的 AI 楼层**正文与
 **EPUB（.epub）**
 
 - 标准 EPUB 3，`mimetype` 为首个未压缩条目，带 `META-INF/container.xml`、`content.opf`、`nav.xhtml` 和 `toc.ncx`；
-- 封面页 + 每 8 个 AI 楼层一章，目录可跳转；
+- 封面页 + 每个 AI 楼层一章（第一层＝第一章、第二层＝第二章……），目录可跳转；
 - 正文按同样的顺序渲染为 XHTML，支持标题、列表、引用、粗体/斜体/删除线/行内代码；
 - 图片内嵌在 `OEBPS/images/`，按正文中的位置插入，图下保留提示词；
 - 文件名：`柏宝绘_<角色名>_图文_<YYYYMMDD-HHmm>.epub`。
@@ -210,13 +210,13 @@ python tests/validate_docx.py tests/sample.docx
 python tests/validate_epub.py tests/sample.epub
 ```
 
-当前单测 **37 项**全部通过，覆盖：思维链/吐槽/状态块剔除、孤儿闭合标签整段切、结尾孤儿开标签、`<details><summary>` 折叠块、`tool_call`/`tool_response`/`advice`、提示词复述整行删除、尾部提示词带大纲整段切、无时间戳楼层、`<正文>` 容器、自定义正文标签、思维链里的示例 tag 不参与配图、标签清单扫描（含容器内部标签）与默认剔除建议、勾掉正文容器后整块不导出、1-based 楼层范围/单层/越界夹取、EPUB 的 mimetype 顺序与 OPF/spine/图片/每 8 层分章、手机断点与安全区。
+当前单测 **37 项**全部通过，覆盖：思维链/吐槽/状态块剔除、孤儿闭合标签整段切、结尾孤儿开标签、`<details><summary>` 折叠块、`tool_call`/`tool_response`/`advice`、提示词复述整行删除、尾部提示词带大纲整段切、无时间戳楼层、`<正文>` 容器、自定义正文标签、思维链里的示例 tag 不参与配图、标签清单扫描（含容器内部标签）与默认剔除建议、勾掉正文容器后整块不导出、1-based 楼层范围/单层/越界夹取、EPUB 的 mimetype 顺序与 OPF/spine/图片/每层一章、手机断点与安全区。
 
 `tests/dialog-preview.html` 是手机弹窗的静态预览；`tests/dialog-mobile.png` 是 390×844 的渲染结果。
 
 `tests/` 只用于开发；安装到酒馆时不需要带上。
 
-> 样例 DOCX 已用 Microsoft Word 实际打开并导出 PDF 验证（2 张内嵌图、3 页正常渲染）；样例 EPUB 已用 Calibre `ebook-convert` 实际解析并转 PDF/TXT 验证（2 个 HTML、中文正文与配图正常）。
+> 样例 DOCX 已用 Microsoft Word 实际打开并导出 PDF 验证（2 张内嵌图、3 页正常渲染）；样例 EPUB 已用 Calibre `ebook-convert` 实际解析并转 PDF/TXT 验证（3 个 HTML、中文正文与配图正常）。
 
 ---
 

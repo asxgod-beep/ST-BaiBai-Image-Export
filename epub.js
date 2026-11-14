@@ -18,6 +18,25 @@ function imageExtension(mime) {
   return MIME[String(mime || '').toLowerCase()] || 'jpg';
 }
 
+/** 章节号用中文：1 → 一，10 → 十，101 → 一百零一，236 → 二百三十六。 */
+function chineseNumber(value) {
+  const digits = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+  const units = ['', '十', '百', '千'];
+  const n = Math.max(0, Math.floor(Number(value) || 0));
+  if (n >= 10000) return String(n);
+  let text = '';
+  for (let place = 3; place >= 0; place--) {
+    const digit = Math.floor(n / 10 ** place) % 10;
+    if (digit === 0) {
+      if (text && !text.endsWith('零') && n % 10 ** place !== 0) text += '零';
+      continue;
+    }
+    text += digits[digit] + units[place];
+  }
+  text = text.replace(/零+$/, '');
+  return text.replace(/^一十/, '十') || '零';
+}
+
 function makeId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return `urn:uuid:${crypto.randomUUID()}`;
@@ -105,6 +124,7 @@ function renderBlocks(blocks, imageNames) {
   const parts = [];
   for (const block of blocks) {
     if (block.type === 'floor') {
+      if (block.hidden) continue;
       const meta = block.meta ? `<div class="floor-meta">${escapeXml(block.meta)}</div>` : '';
       parts.push(`<h2 class="floor">${escapeXml(block.name || '')}</h2>${meta}`);
       continue;
@@ -157,21 +177,25 @@ export function buildEpub({ title, subtitle = '', blocks = [], createdAt = new D
 
   const chapters = [];
   let current = null;
-  let floorCount = 0;
+  let floorNumber = 0;
+  let preface = [];
   for (const block of blocks) {
     if (block.type === 'floor') {
-      if (current && current.blocks.length && floorCount >= 8) {
-        chapters.push(current);
-        current = null;
-      }
-      floorCount += 1;
+      floorNumber += 1;
+      if (current && current.blocks.length) chapters.push(current);
+      const number = Number.isInteger(block.index) ? Math.max(1, block.index) : floorNumber;
+      current = { title: `第${chineseNumber(number)}章`, blocks: [...preface, block] };
+      preface = [];
+      continue;
     }
     if (!current) {
-      current = { title: block.type === 'floor' ? block.name || '正文' : '正文', blocks: [] };
+      preface.push(block);
+      continue;
     }
     current.blocks.push(block);
   }
   if (current && current.blocks.length) chapters.push(current);
+  else if (preface.length) chapters.push({ title: '正文', blocks: preface });
 
   const titlePage = chapterXhtml(
     bookTitle,
@@ -179,13 +203,16 @@ export function buildEpub({ title, subtitle = '', blocks = [], createdAt = new D
   );
   const chapterFiles = chapters.map((chapter, index) => ({
     name: `chapter-${index + 1}.xhtml`,
-    title: chapter.title || `正文 ${index + 1}`,
-    xhtml: chapterXhtml(chapter.title || `正文 ${index + 1}`, renderBlocks(chapter.blocks, imageNames)),
+    title: chapter.title,
+    xhtml: chapterXhtml(
+      chapter.title,
+      `<h1 class="chapter-title">${escapeXml(chapter.title)}</h1>${renderBlocks(chapter.blocks, imageNames)}`,
+    ),
   }));
 
   const navItems = [
     '<li><a href="text/title.xhtml">封面</a></li>',
-    ...chapterFiles.map((chapter, index) => `<li><a href="text/${chapter.name}">第 ${index + 1} 章 · ${escapeXml(chapter.title)}</a></li>`),
+    ...chapterFiles.map(chapter => `<li><a href="text/${chapter.name}">${escapeXml(chapter.title)}</a></li>`),
   ];
 
   const nav = `<?xml version="1.0" encoding="utf-8"?>
@@ -204,7 +231,7 @@ export function buildEpub({ title, subtitle = '', blocks = [], createdAt = new D
 <docTitle><text>${escapeXml(bookTitle)}</text></docTitle>
 <navMap>
 <navPoint id="navPoint-1" playOrder="1"><navLabel><text>封面</text></navLabel><content src="text/title.xhtml"/></navPoint>
-${chapterFiles.map((chapter, index) => `<navPoint id="navPoint-${index + 2}" playOrder="${index + 2}"><navLabel><text>第 ${index + 1} 章 · ${escapeXml(chapter.title)}</text></navLabel><content src="text/${chapter.name}"/></navPoint>`).join('\n')}
+${chapterFiles.map((chapter, index) => `<navPoint id="navPoint-${index + 2}" playOrder="${index + 2}"><navLabel><text>${escapeXml(chapter.title)}</text></navLabel><content src="text/${chapter.name}"/></navPoint>`).join('\n')}
 </navMap>
 </ncx>`;
 
@@ -243,6 +270,7 @@ ${chapterFiles.map((chapter, index) => `<navPoint id="navPoint-${index + 2}" pla
 
   const css = `body { font-family: serif; line-height: 1.75; margin: 1.2em; color: #222; }
 h1 { font-size: 1.8em; line-height: 1.3; margin: 0.8em 0 0.4em; }
+h1.chapter-title { font-size: 1.6em; text-align: center; margin: 0.5em 0 1em; letter-spacing: 0.08em; }
 h2 { font-size: 1.25em; margin: 1.6em 0 0.6em; padding-bottom: 0.25em; border-bottom: 1px solid #ccc; }
 h3, h4, h5, h6 { line-height: 1.4; }
 p { margin: 0.55em 0; text-indent: 1.2em; }

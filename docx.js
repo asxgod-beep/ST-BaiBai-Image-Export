@@ -543,7 +543,7 @@ export function buildDocx({ title, subtitle, blocks, createdAt = new Date(), max
     if (!block) continue;
     switch (block.type) {
       case 'floor':
-        bodyParts.push(floorHeaderXml(block.name, block.meta));
+        if (!block.hidden) bodyParts.push(floorHeaderXml(block.name, block.meta));
         break;
       case 'divider':
         bodyParts.push(paragraphXml('', { borderBottom: true, before: 240, after: 240 }));
