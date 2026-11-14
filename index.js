@@ -613,7 +613,12 @@ function tagBadges(item) {
  * 返回 null 表示取消；返回对象会与设置合并成本次导出的选项。
  */
 function openExportDialog(ctx, settings) {
-  if (dialogOpen) return Promise.resolve(null);
+  // 手机端偶发：上一次弹窗被宿主重绘/返回键移除，但 dialogOpen 还是 true，
+  // 于是第二次点击被静默拦掉、必须刷新页面。这里按 DOM 是否存在自愈。
+  const existingDialog = document.getElementById(DIALOG_ID);
+  if (dialogOpen && existingDialog) return Promise.resolve(null);
+  if (existingDialog) existingDialog.remove();
+  dialogOpen = false;
   dialogOpen = true;
 
   return new Promise(resolve => {
@@ -785,11 +790,13 @@ function openExportDialog(ctx, settings) {
     });
 
     let settled = false;
+    let cleanupObserver = null;
     const finish = value => {
       if (settled) return;
       settled = true;
       dialogOpen = false;
       document.removeEventListener('keydown', onKey);
+      cleanupObserver?.disconnect();
       overlay.remove();
       resolve(value);
     };
@@ -797,6 +804,15 @@ function openExportDialog(ctx, settings) {
       if (event.key === 'Escape') finish(null);
     };
     document.addEventListener('keydown', onKey);
+
+    // 宿主（手机端尤其明显）可能在返回/重绘时直接把弹窗节点移走而不触发取消。
+    // 这里补一个 DOM 监听，节点一消失就结束等待，避免 dialogOpen 永久卡住。
+    if (typeof MutationObserver === 'function' && document.body) {
+      cleanupObserver = new MutationObserver(() => {
+        if (!overlay.isConnected) finish(null);
+      });
+      cleanupObserver.observe(document.body, { childList: true });
+    }
 
     overlay.querySelector('[data-action="backdrop"]')?.addEventListener('click', () => finish(null));
     overlay.querySelector('[data-action="cancel"]')?.addEventListener('click', () => finish(null));
@@ -1090,7 +1106,10 @@ function toDocBlocks(floors, assets, options) {
 }
 
 async function exportAll() {
-  if (busy) return;
+  if (busy) {
+    toast('info', '上一次导出还在处理，请等它完成后再点。');
+    return;
+  }
   const ctx = getContext();
   if (!ctx || !Array.isArray(ctx.chat) || !ctx.chat.length) {
     toast('warning', '当前没有可导出的聊天。');
