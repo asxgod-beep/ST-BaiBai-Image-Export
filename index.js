@@ -511,7 +511,9 @@ function extractBody(raw, options = {}) {
  * ------------------------------------------------------------------ */
 
 const DIALOG_ID = 'bbi-export-dialog';
+const PROGRESS_ID = 'bbi-export-progress';
 let dialogOpen = false;
+let progressHideTimer = null;
 
 function escapeHtml(value) {
   const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
@@ -1120,10 +1122,16 @@ async function exportAll() {
   if (!choice) return;
 
   const options = { ...settings, ...choice };
+  const format = options.format === 'epub' ? 'epub' : 'docx';
+  const formatLabel = format === 'epub' ? 'EPUB' : 'Word';
   busy = true;
-  setBusyUi(true, '正在收集楼层…');
-
+  let exported = false;
   try {
+    updateProgress(`正在导出 ${formatLabel}`, '正在收集楼层…', -1);
+    setBusyUi(true, '正在收集楼层…');
+    // 让进度条先渲染出来，再开始同步扫描楼层
+    await new Promise(resolve => setTimeout(resolve, 30));
+
     const allFloors = collectFloors(ctx, options);
     const floors = selectFloorRange(allFloors, options.floorStart, options.floorEnd)
       .filter(floor => !options.onlyWithImages || floor.imageCount > 0);
@@ -1144,6 +1152,7 @@ async function exportAll() {
     let loaded = 0;
 
     if (uniquePaths.length) {
+      updateProgress(`正在导出 ${formatLabel}`, `正在读取配图 0/${uniquePaths.length}`, 10);
       setBusyUi(true, `正在读取配图 0/${uniquePaths.length}`);
       await mapLimit(uniquePaths, FETCH_CONCURRENCY, async path => {
         try {
@@ -1153,13 +1162,19 @@ async function exportAll() {
           assets.set(path, null);
         } finally {
           loaded += 1;
+          const percent = 10 + Math.round((loaded / uniquePaths.length) * 65);
+          updateProgress(`正在导出 ${formatLabel}`, `正在读取配图 ${loaded}/${uniquePaths.length}`, percent);
           setBusyUi(true, `正在读取配图 ${loaded}/${uniquePaths.length}`);
         }
       });
+    } else {
+      updateProgress(`正在导出 ${formatLabel}`, '正在整理正文…', 60);
     }
 
-    const format = options.format === 'epub' ? 'epub' : 'docx';
+    updateProgress(`正在打包 ${formatLabel}`, '正在生成文档…', 82);
     setBusyUi(true, format === 'epub' ? '正在生成 EPUB…' : '正在生成 Word…');
+    // 打包是同步的，先让 82% 那一帧画出来，避免进度条卡在上一段
+    await new Promise(resolve => setTimeout(resolve, 30));
     const { blocks, stats } = toDocBlocks(floors, assets, options);
 
     const now = new Date();
@@ -1172,9 +1187,12 @@ async function exportAll() {
       : buildDocx({ title, subtitle, blocks, createdAt: now });
     const extension = format === 'epub' ? '.epub' : '.docx';
     const filename = `柏宝绘_${safeFileName(characterName)}_图文_${formatStamp(now)}${extension}`;
+    updateProgress(`正在导出 ${formatLabel}`, '正在交给浏览器下载…', 96);
+    await new Promise(resolve => setTimeout(resolve, 20));
     downloadFile(bytes, filename, format === 'epub' ? EPUB_MIME : DOCX_MIME);
+    exported = true;
+    updateProgress(`已生成 ${formatLabel}`, filename, 100);
 
-    const formatLabel = format === 'epub' ? 'EPUB' : 'Word';
     if (stats.failed) {
       toast('warning', `已导出 ${stats.floors} 个 AI 楼层、${stats.images} 张配图（${formatLabel}）；${stats.failed} 张图片读取失败已跳过。`);
     } else {
@@ -1189,6 +1207,7 @@ async function exportAll() {
   } finally {
     busy = false;
     setBusyUi(false, '');
+    hideProgress(exported ? 1400 : 0);
   }
 }
 
@@ -1210,6 +1229,63 @@ function setBusyUi(running, text) {
     menuItem.style.opacity = running ? '0.55' : '';
     menuItem.style.pointerEvents = running ? 'none' : '';
   }
+}
+
+/**
+ * 导出进度 HUD：点击「开始导出」后立刻出现，不依赖设置面板是否展开。
+ * percent < 0 表示不确定进度（来回滚动的条）；0–100 表示确定进度。
+ */
+function ensureProgressHud() {
+  if (!document.body) return null;
+  let hud = document.getElementById(PROGRESS_ID);
+  if (hud) return hud;
+  hud = document.createElement('div');
+  hud.id = PROGRESS_ID;
+  hud.className = 'bbi-export-progress';
+  hud.setAttribute('role', 'status');
+  hud.setAttribute('aria-live', 'polite');
+  hud.innerHTML = `
+    <div class="bbi-export-progress__head">
+      <span class="bbi-export-progress__spinner" aria-hidden="true"></span>
+      <b class="bbi-export-progress__title">正在导出</b>
+    </div>
+    <p class="bbi-export-progress__detail"></p>
+    <div class="bbi-export-progress__bar"><span></span></div>`;
+  document.body.appendChild(hud);
+  return hud;
+}
+
+function updateProgress(title, detail = '', percent = -1) {
+  if (progressHideTimer) {
+    clearTimeout(progressHideTimer);
+    progressHideTimer = null;
+  }
+  const hud = ensureProgressHud();
+  if (!hud) return;
+  const titleEl = hud.querySelector('.bbi-export-progress__title');
+  const detailEl = hud.querySelector('.bbi-export-progress__detail');
+  const bar = hud.querySelector('.bbi-export-progress__bar span');
+  if (titleEl) titleEl.textContent = title;
+  if (detailEl) detailEl.textContent = detail;
+  const known = Number.isFinite(percent) && percent >= 0;
+  hud.classList.toggle('is-indeterminate', !known);
+  if (bar) {
+    if (known) {
+      bar.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+    } else {
+      bar.style.width = '35%';
+    }
+  }
+}
+
+function hideProgress(delay = 0) {
+  if (progressHideTimer) clearTimeout(progressHideTimer);
+  const remove = () => {
+    progressHideTimer = null;
+    document.getElementById(PROGRESS_ID)?.remove();
+  };
+  if (delay > 0) progressHideTimer = setTimeout(remove, delay);
+  else remove();
 }
 
 function injectSettingsPanel() {

@@ -95,6 +95,108 @@
 }
 
 /* ------------------------------------------------------------------ *
+ * 导出进度 HUD：点击「开始导出」后立即出现，手机端固定在安全区上方
+ * ------------------------------------------------------------------ */
+
+.bbi-export-progress {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  bottom: max(18px, calc(env(safe-area-inset-bottom) + 14px));
+  transform: translateX(-50%);
+  z-index: 2147483000;
+  width: min(360px, calc(100vw - 24px));
+  box-sizing: border-box;
+  padding: 11px 13px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(24, 24, 27, 0.96);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.38);
+  color: #f4f4f5;
+  font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+}
+
+.bbi-export-progress__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.bbi-export-progress__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.bbi-export-progress__spinner {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  border-top-color: #8ab4ff;
+  border-radius: 50%;
+  animation: bbi-export-spin 0.8s linear infinite;
+}
+
+.bbi-export-progress__detail {
+  margin: 5px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(244, 244, 245, 0.72);
+  font-size: 12px;
+}
+
+.bbi-export-progress__bar {
+  height: 4px;
+  margin-top: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.bbi-export-progress__bar span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: #8ab4ff;
+  transition: width 0.18s linear;
+}
+
+.bbi-export-progress.is-indeterminate .bbi-export-progress__bar span {
+  animation: bbi-export-indeterminate 1.2s ease-in-out infinite;
+}
+
+@keyframes bbi-export-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes bbi-export-indeterminate {
+  0% { transform: translateX(-110%); }
+  50% { transform: translateX(150%); }
+  100% { transform: translateX(300%); }
+}
+
+@media (max-width: 640px) {
+  .bbi-export-progress {
+    width: calc(100vw - 24px);
+    padding: 12px 14px 11px;
+    border-radius: 14px;
+  }
+  .bbi-export-progress__title {
+    font-size: 14px;
+  }
+  .bbi-export-progress__detail {
+    font-size: 12px;
+  }
+}
+
+/* ------------------------------------------------------------------ *
  * 导出前确认弹窗：标签清单 / 正文来源 / 剔除名单
  * 全部类名带 bbi-export-dialog 前缀，不影响 ST 其它弹窗。
  * ------------------------------------------------------------------ */
