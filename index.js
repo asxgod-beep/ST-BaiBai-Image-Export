@@ -851,7 +851,10 @@ function openExportDialog(ctx, settings) {
  * ------------------------------------------------------------------ */
 
 function chapterTitleFromUser(raw) {
-  let text = sanitizeMessageText(raw);
+  let source = String(raw ?? '');
+  const advice = /<advice\b[^>]*>([\s\S]*?)<\/advice>/i.exec(source);
+  if (advice) source = advice[1];
+  let text = sanitizeMessageText(source);
   text = text.replace(/^[>*#\-\s]+/gm, '').replace(/[*_`~]/g, '');
   const firstLine = text.split('\n').map(line => line.trim()).find(Boolean) || '';
   let title = firstLine.replace(/[ \t]+/g, ' ').replace(/^【/, '').replace(/】$/, '').trim();
