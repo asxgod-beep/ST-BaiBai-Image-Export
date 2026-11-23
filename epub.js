@@ -190,7 +190,7 @@ export function buildEpub({ title, subtitle = '', blocks = [], createdAt = new D
     if (block.type === 'floor') {
       floorNumber += 1;
       if (current && current.blocks.length) chapters.push(current);
-      const number = Number.isInteger(block.index) ? Math.max(1, block.index) : floorNumber;
+      const number = floorNumber;
       current = { title: chapterHeading(number, block.userTitle), blocks: [...preface, block] };
       preface = [];
       continue;
