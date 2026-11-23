@@ -862,19 +862,15 @@ function chapterTitleFromUser(raw) {
 function collectFloors(ctx, options = {}) {
   const floors = [];
   const chat = Array.isArray(ctx.chat) ? ctx.chat : [];
+  let pendingUserTitle = '';
 
   for (let messageId = 0; messageId < chat.length; messageId++) {
     const message = chat[messageId];
-    if (!isAiStoryMessage(message)) continue;
-
-    let userTitle = '';
-    for (let previousId = messageId - 1; previousId >= 0; previousId--) {
-      const previous = chat[previousId];
-      if (previous && previous.is_user) {
-        userTitle = chapterTitleFromUser(previous.mes);
-        break;
-      }
+    if (message && message.is_user) {
+      pendingUserTitle = chapterTitleFromUser(message.mes);
+      continue;
     }
+    if (!isAiStoryMessage(message)) continue;
 
     const swipeId = Number.isInteger(message.swipe_id) ? message.swipe_id : 0;
     const store = readStore(message, swipeId);
@@ -900,6 +896,8 @@ function collectFloors(ctx, options = {}) {
     if (tail) blocks.push({ type: 'text', text: tail });
     if (!blocks.length) continue;
 
+    const userTitle = pendingUserTitle;
+    pendingUserTitle = '';
     floors.push({
       ordinal: floors.length + 1,
       messageId,
