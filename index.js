@@ -42,6 +42,7 @@ const DEFAULT_SETTINGS = {
   bodyOnly: true,
   bodyTag: '',
   excludeTags: '',
+  useUserTitle: true,
   format: 'docx',
 };
 
@@ -668,6 +669,11 @@ function openExportDialog(ctx, settings) {
           <span>只导出正文（去掉思维链、吐槽、状态块）</span>
         </label>
 
+        <label class="bbi-export-dialog__switch">
+          <input type="checkbox" id="bbi-dialog-user-title" ${settings.useUserTitle === false ? '' : 'checked'}>
+          <span>用用户发言生成 EPUB 章节名（关闭后只显示第 N 章）</span>
+        </label>
+
         <fieldset class="bbi-export-dialog__fields">
           <section class="bbi-export-dialog__section">
             <h4>1. 导出格式</h4>
@@ -723,6 +729,7 @@ function openExportDialog(ctx, settings) {
     document.body.appendChild(overlay);
 
     const bodyOnly = overlay.querySelector('#bbi-dialog-body-only');
+    const userTitleToggle = overlay.querySelector('#bbi-dialog-user-title');
     const floorStart = overlay.querySelector('#bbi-floor-start');
     const floorEnd = overlay.querySelector('#bbi-floor-end');
     const rangeError = overlay.querySelector('.bbi-export-dialog__range-error');
@@ -825,7 +832,7 @@ function openExportDialog(ctx, settings) {
         return;
       }
       if (!bodyOnly.checked) {
-        finish({ bodyOnly: false, format, ...range });
+        finish({ bodyOnly: false, useUserTitle: userTitleToggle?.checked !== false, format, ...range });
         return;
       }
       const chosenBody = overlay.querySelector('input[name="bbi-body-tag"]:checked')?.value || '';
@@ -839,6 +846,7 @@ function openExportDialog(ctx, settings) {
         bodyTag: chosenBody,
         excludeTags: excluded.join(', '),
         keepTags: kept.join(', '),
+        useUserTitle: userTitleToggle?.checked !== false,
         format,
         ...range,
       });
@@ -855,6 +863,7 @@ function chapterTitleFromUser(raw) {
   const advice = /<advice\b[^>]*>([\s\S]*?)<\/advice>/i.exec(source);
   if (advice) source = advice[1];
   let text = sanitizeMessageText(source);
+  text = text.replace(/<\/?[^>]+>/g, '');
   text = text.replace(/^[>*#\-\s]+/gm, '').replace(/[*_`~]/g, '');
   const firstLine = text.split('\n').map(line => line.trim()).find(Boolean) || '';
   let title = firstLine.replace(/[ \t]+/g, ' ').replace(/^【/, '').replace(/】$/, '').trim();
@@ -899,7 +908,7 @@ function collectFloors(ctx, options = {}) {
     if (tail) blocks.push({ type: 'text', text: tail });
     if (!blocks.length) continue;
 
-    const userTitle = pendingUserTitle;
+    const userTitle = options.useUserTitle === false ? '' : pendingUserTitle;
     pendingUserTitle = '';
     floors.push({
       ordinal: floors.length + 1,
@@ -1324,6 +1333,7 @@ function injectSettingsPanel() {
     </div>
     <div class="bbi-export-panel__options">
       <label><input type="checkbox" data-setting="bodyOnly"> 只导出正文（自动去掉思维链、吐槽、状态块）</label>
+      <label><input type="checkbox" data-setting="useUserTitle"> 用用户发言生成 EPUB 章节名</label>
       <label class="bbi-export-panel__field">
         <span>正文标签（可选）</span>
         <input type="text" data-setting="bodyTag" placeholder="留空自动识别，例如：正文">
