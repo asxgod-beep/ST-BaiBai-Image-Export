@@ -37,6 +37,13 @@ function chineseNumber(value) {
   return text.replace(/^一十/, '十') || '零';
 }
 
+/** 章节名：第N章：【用户层标题】；没有用户层标题时只保留第N章。 */
+function chapterHeading(number, userTitle = '') {
+  const base = `第${chineseNumber(number)}章`;
+  const title = String(userTitle || '').replace(/^【/, '').replace(/】$/, '').trim();
+  return title ? `${base}：【${title}】` : base;
+}
+
 function makeId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return `urn:uuid:${crypto.randomUUID()}`;
@@ -184,7 +191,7 @@ export function buildEpub({ title, subtitle = '', blocks = [], createdAt = new D
       floorNumber += 1;
       if (current && current.blocks.length) chapters.push(current);
       const number = Number.isInteger(block.index) ? Math.max(1, block.index) : floorNumber;
-      current = { title: `第${chineseNumber(number)}章`, blocks: [...preface, block] };
+      current = { title: chapterHeading(number, block.userTitle), blocks: [...preface, block] };
       preface = [];
       continue;
     }

@@ -850,6 +850,15 @@ function openExportDialog(ctx, settings) {
  * 5. 收集楼层
  * ------------------------------------------------------------------ */
 
+function chapterTitleFromUser(raw) {
+  let text = sanitizeMessageText(raw);
+  text = text.replace(/^[>*#\-\s]+/gm, '').replace(/[*_`~]/g, '');
+  const firstLine = text.split('\n').map(line => line.trim()).find(Boolean) || '';
+  let title = firstLine.replace(/[ \t]+/g, ' ').replace(/^【/, '').replace(/】$/, '').trim();
+  if (title.length > 50) title = `${title.slice(0, 50).trim()}…`;
+  return title;
+}
+
 function collectFloors(ctx, options = {}) {
   const floors = [];
   const chat = Array.isArray(ctx.chat) ? ctx.chat : [];
@@ -857,6 +866,15 @@ function collectFloors(ctx, options = {}) {
   for (let messageId = 0; messageId < chat.length; messageId++) {
     const message = chat[messageId];
     if (!isAiStoryMessage(message)) continue;
+
+    let userTitle = '';
+    for (let previousId = messageId - 1; previousId >= 0; previousId--) {
+      const previous = chat[previousId];
+      if (previous && previous.is_user) {
+        userTitle = chapterTitleFromUser(previous.mes);
+        break;
+      }
+    }
 
     const swipeId = Number.isInteger(message.swipe_id) ? message.swipe_id : 0;
     const store = readStore(message, swipeId);
@@ -887,6 +905,7 @@ function collectFloors(ctx, options = {}) {
       messageId,
       name: String(message.name || '').trim(),
       date: String(message.send_date || '').trim(),
+      userTitle,
       blocks,
       imageCount,
     });
@@ -1078,6 +1097,7 @@ function toDocBlocks(floors, assets, options) {
       name: options.showFloorName ? floor.name : '',
       meta: options.showTime ? floor.date : '',
       index: floor.ordinal,
+      userTitle: floor.userTitle || '',
       hidden: !options.showFloorName,
     });
     for (const item of floor.blocks) {
