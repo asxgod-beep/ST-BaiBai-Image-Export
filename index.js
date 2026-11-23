@@ -260,7 +260,7 @@ const HTML_TAG_NAMES = new Set([
 
 const escapeRegExp = value => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-const TAG_NAME_PATTERN = '[A-Za-z0-9_\\u4E00-\\u9FFF~:.\\-]{1,80}';
+const TAG_NAME_PATTERN = '[A-Za-z0-9_\\u4E00-\\u9FFF\\u3040-\\u30FF\\u0400-\\u04FF~:.@#%\\-]{1,80}';
 
 function normalizeTagName(name) {
   return String(name || '').trim().toLowerCase().replace(/[~-]+$/, '');
@@ -301,6 +301,39 @@ function unwrapBodyTags(text) {
 /** 时间戳切点落在容器内部时，结尾会剩一个 `</正文>`，这里清掉。 */
 function stripBodyWrapperTags(text) {
   return text.replace(new RegExp(`</(?:${BODY_TAG_PATTERN})[^>]*>`, 'gi'), '');
+}
+
+/** 其余未被识别为正文容器或 HTML 排版标签的自定义外壳，拆开保内容、不留尖括号。 */
+function unwrapUnknownWrappers(text, keepNames = new Set()) {
+  const protectedImages = [];
+  let result = String(text ?? '').replace(/<bbi_image[\s\S]*?<\/bbi_image>/gi, match => {
+    protectedImages.push(match);
+    return `\0${protectedImages.length - 1}\0`;
+  });
+
+  const pairedRe = new RegExp(`<(${TAG_NAME_PATTERN})(?:[ \\t][^>]*)?>([\\s\\S]*?)</\\1[^>]*>`, 'gi');
+  for (let depth = 0; depth < 3; depth += 1) {
+    const next = result.replace(pairedRe, (whole, name, inner) => {
+      const normalized = normalizeTagName(name);
+      if (HTML_TAG_NAMES.has(normalized) || BODY_TAG_NAMES.has(normalized) || keepNames.has(normalized)) {
+        return whole;
+      }
+      return inner;
+    });
+    if (next === result) break;
+    result = next;
+  }
+
+  const orphanRe = new RegExp(`</?(${TAG_NAME_PATTERN})[^>]*>`, 'gi');
+  result = result.replace(orphanRe, (whole, name) => {
+    const normalized = normalizeTagName(name);
+    if (HTML_TAG_NAMES.has(normalized) || BODY_TAG_NAMES.has(normalized) || keepNames.has(normalized)) {
+      return whole;
+    }
+    return '';
+  });
+
+  return result.replace(/\0(\d+)\0/g, (_, index) => protectedImages[Number(index)] || '');
 }
 
 /** 整块删除命中的 `<tag>…</tag>`，按范围倒序替换，避免索引错位。 */
@@ -494,6 +527,7 @@ function extractBody(raw, options = {}) {
   text = removeOrphanMetaBlocks(text, parseTagList(options.excludeTags), keepNames);
   text = removeMetaBlocks(text, parseTagList(options.excludeTags), keepNames);
   text = unwrapBodyTags(text);
+  text = unwrapUnknownWrappers(text, keepNames);
 
   const head = text.slice(0, 800);
   const stamp = /^[ \t]*(?:#{1,6}[ \t]*)?【[^】\n]{1,80}】[ \t]*$/m.exec(head);
