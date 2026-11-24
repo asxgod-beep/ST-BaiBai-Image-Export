@@ -71,6 +71,53 @@
   font-size: 12px;
 }
 
+.bbi-export-panel__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.bbi-export-panel__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 4px 8px;
+  border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.16));
+  border-radius: 999px;
+  background: rgba(127, 127, 127, 0.1);
+  color: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.bbi-export-panel__chip:hover {
+  background: rgba(127, 127, 127, 0.18);
+}
+
+.bbi-export-panel__chip.is-active {
+  border-color: rgba(138, 180, 255, 0.72);
+  background: rgba(138, 180, 255, 0.22);
+}
+
+.bbi-export-panel__chip code {
+  font-size: 11px;
+  word-break: break-all;
+}
+
+.bbi-export-panel__chip em {
+  font-style: normal;
+  opacity: 0.66;
+  font-size: 11px;
+}
+
+.bbi-export-panel__chips-empty {
+  opacity: 0.62;
+  font-size: 11px;
+}
+
 .bbi-export-panel__actions {
   display: flex;
   align-items: center;

@@ -273,6 +273,15 @@ function parseTagList(value) {
     .filter(Boolean);
 }
 
+/** 在逗号分隔标签列表里切换一个标签；已存在就移除，不存在就追加。 */
+function toggleTagInList(currentValue, tagName) {
+  const target = normalizeTagName(tagName);
+  if (!target) return String(currentValue || '').trim();
+  const current = parseTagList(currentValue);
+  const next = current.includes(target) ? current.filter(name => name !== target) : [...current, target];
+  return next.join(', ');
+}
+
 function isMetaTagName(name, extraNames = new Set(), keepNames = new Set()) {
   const normalized = normalizeTagName(name);
   if (!normalized) return false;
@@ -1352,6 +1361,21 @@ function hideProgress(delay = 0) {
   else remove();
 }
 
+function renderPanelTagChips(panel, settingKey) {
+  const input = panel.querySelector(`input[data-setting="${settingKey}"]`);
+  const host = panel.querySelector(`[data-chip-group="${settingKey}"]`);
+  if (!input || !host) return;
+
+  const inventory = scanTagInventory(getContext()?.chat);
+  const selected = new Set(parseTagList(input.value));
+  const chips = inventory.tags.map(item => `
+    <button type="button" class="bbi-export-panel__chip ${selected.has(item.key) ? 'is-active' : ''}"
+      data-chip="${escapeHtml(item.name)}" title="点击${selected.has(item.key) ? '移除' : '加入'}排除名单">
+      <code>&lt;${escapeHtml(item.name)}&gt;</code><em>${item.count} 次</em>
+    </button>`).join('');
+  host.innerHTML = chips || '<span class="bbi-export-panel__chips-empty">当前聊天没有检测到可快捷选择的标签。</span>';
+}
+
 function injectSettingsPanel() {
   if (document.getElementById(PANEL_ID)) return true;
   const host = document.getElementById('extensions_settings2') || document.getElementById('extensions_settings');
@@ -1375,6 +1399,7 @@ function injectSettingsPanel() {
       <label class="bbi-export-panel__field">
         <span>额外排除的标签</span>
         <input type="text" data-setting="excludeTags" placeholder="逗号分隔，例如：konatan_planning, tucao">
+        <span class="bbi-export-panel__chips" data-chip-group="excludeTags" aria-label="已识别标签快捷选择"></span>
       </label>
       <label><input type="checkbox" data-setting="showFloorName"> 显示楼层角色名</label>
       <label><input type="checkbox" data-setting="showTime"> 显示楼层时间</label>
@@ -1397,10 +1422,23 @@ function injectSettingsPanel() {
     } else {
       input.value = typeof settings[key] === 'string' ? settings[key] : '';
       input.addEventListener('change', () => writeSetting(key, input.value.trim()));
+      if (key === 'excludeTags') input.addEventListener('input', () => renderPanelTagChips(panel, key));
     }
   }
 
+  const chipHost = panel.querySelector('[data-chip-group="excludeTags"]');
+  chipHost?.addEventListener('click', event => {
+    const button = event.target.closest('[data-chip]');
+    const input = panel.querySelector('input[data-setting="excludeTags"]');
+    if (!button || !input) return;
+    input.value = toggleTagInList(input.value, button.dataset.chip);
+    writeSetting('excludeTags', input.value.trim());
+    renderPanelTagChips(panel, 'excludeTags');
+  });
+  renderPanelTagChips(panel, 'excludeTags');
+
   panel.querySelector(`#${RUN_BUTTON_ID}`)?.addEventListener('click', () => {
+    renderPanelTagChips(panel, 'excludeTags');
     void exportAll();
   });
 
@@ -1559,4 +1597,5 @@ export {
   scanTagInventory,
   selectFloorRange,
   suggestExclude,
+  toggleTagInList,
 };
